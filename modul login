@@ -1,0 +1,98 @@
+import tkinter as tk
+from tkinter import messagebox
+import pemesanan
+import customer
+import psycopg2
+
+def create_connection():
+    return psycopg2.connect(
+        user="postgres",
+        password="@bdk4riM",
+        host="127.0.0.1",
+        port="5432",
+        database="postgres"
+    )
+
+def add_password_column():
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        ALTER TABLE akun
+        ADD COLUMN IF NOT EXISTS password VARCHAR(100)
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def register_user(name, email, password):
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO akun (name, email, password) VALUES (%s, %s, %s)",
+        (name, email, password)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def login(email, password):
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM akun WHERE email=%s AND password=%s",
+        (email, password)
+    )
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    if user:
+        return True
+    else:
+        return False
+
+# GUI Functions
+def show_menu_utama(root):
+    root.destroy()
+    menu = tk.Tk()
+    menu.title("Menu Utama")
+
+    def open_pemesanan():
+        menu.destroy()
+        pemesanan.menu_utama_pemesanan()  # Pastikan fungsi GUI ada di pemesanan.py
+
+    def open_customer():
+        menu.destroy()
+        customer.menu_utama_customer()  # Pastikan fungsi GUI ada di customer.py
+
+    tk.Label(menu, text="=== Menu Utama ===", font=("Arial", 14)).pack(pady=10)
+    tk.Button(menu, text="Form Pemesanan", width=20, command=open_pemesanan).pack(pady=5)
+    tk.Button(menu, text="Form Customer", width=20, command=open_customer).pack(pady=5)
+    tk.Button(menu, text="Keluar", width=20, command=menu.destroy).pack(pady=5)
+    menu.mainloop()
+
+def show_login():
+    root = tk.Tk()
+    root.title("Login")
+
+    tk.Label(root, text="Email:").grid(row=0, column=0, padx=10, pady=5)
+    tk.Label(root, text="Password:").grid(row=1, column=0, padx=10, pady=5)
+    email_entry = tk.Entry(root)
+    password_entry = tk.Entry(root, show="*")
+    email_entry.grid(row=0, column=1, padx=10, pady=5)
+    password_entry.grid(row=1, column=1, padx=10, pady=5)
+
+    def do_login():
+        email = email_entry.get()
+        password = password_entry.get()
+        if login(email, password):
+            messagebox.showinfo("Login", "Login berhasil!")
+            show_menu_utama(root)
+        else:
+            messagebox.showerror("Login", "Login gagal. Email atau password salah.")
+
+    tk.Button(root, text="Login", width=15, command=do_login).grid(row=2, column=0, columnspan=2, pady=10)
+    root.mainloop()
+
+if __name__ == "__main__":
+    add_password_column()
+    show_login()
